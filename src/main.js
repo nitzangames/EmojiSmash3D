@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { syncMesh } from 'physics3d';
 import { createCamera, reframeCamera } from './camera.js';
-import { PLATFORM, MAX_BALLS_IN_FLIGHT } from './constants.js';
+import { PLATFORM, MAX_BALLS_IN_FLIGHT, OFF_DEBOUNCE_MS } from './constants.js';
+import { OffTracker } from './off-detection.js';
 import { loadLevelTextures } from './level.js';
 import { buildVisualWall, createWorld, addPlatformBody, buildPhysicalWall, syncWallMeshes } from './wall.js';
 import { emojiUrl, levelById } from './levels.js';
@@ -54,6 +55,8 @@ for (const m of visualWall) scene.add(m);
 const blockBodies = buildPhysicalWall(world, visualWall);
 
 const ballBodies = [];
+const tracker = new OffTracker(OFF_DEBOUNCE_MS);
+let blocksOff = 0;
 
 attachInput(
   canvas,
@@ -73,6 +76,31 @@ function loop(time) {
   world.step(dt);
   syncWallMeshes(blockBodies);
   for (const b of ballBodies) syncMesh(b, b.userData.mesh);
+  const now = performance.now();
+  // scan blocks
+  for (let i = blockBodies.length - 1; i >= 0; i--) {
+    const b = blockBodies[i];
+    tracker.update(b, now);
+    if (tracker.isOff(b)) {
+      if (b.userData.mesh) scene.remove(b.userData.mesh);
+      world.removeBody(b);
+      tracker.forget(b);
+      blockBodies.splice(i, 1);
+      blocksOff++;
+      if (blocksOff === 64) console.log('Level cleared!');
+    }
+  }
+  // scan balls
+  for (let i = ballBodies.length - 1; i >= 0; i--) {
+    const b = ballBodies[i];
+    tracker.update(b, now);
+    if (tracker.isOff(b)) {
+      if (b.userData.mesh) scene.remove(b.userData.mesh);
+      world.removeBody(b);
+      tracker.forget(b);
+      ballBodies.splice(i, 1);
+    }
+  }
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
 }
