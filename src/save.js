@@ -36,7 +36,7 @@ export async function load() {
   const sdk = (typeof window !== 'undefined' && window.PlaySDK) || null;
   if (sdk && typeof sdk.load === 'function') {
     try {
-      const blob = await sdk.load();
+      const blob = await sdk.load(KEY);
       if (blob) return deserialize(blob);
       // blob null/empty → fall through to localStorage
     } catch { /* fallthrough */ }
@@ -49,7 +49,7 @@ export async function save(state) {
   const blob = serialize(state);
   const sdk = (typeof window !== 'undefined' && window.PlaySDK) || null;
   if (sdk && typeof sdk.save === 'function') {
-    try { await sdk.save(blob); } catch { /* fallthrough */ }
+    try { await sdk.save(KEY, blob); } catch { /* fallthrough */ }
   }
   if (typeof localStorage !== 'undefined') localStorage.setItem(KEY, blob);
 }

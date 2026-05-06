@@ -93,7 +93,11 @@ async function showLevelSelectScreen() {
 function tearDown() {
   if (!session) return;
   if (detachInput) { detachInput(); detachInput = null; }
-  for (const m of session.visualWall) scene.remove(m);
+  for (const m of session.visualWall) {
+    scene.remove(m);
+    m.material.map?.dispose();
+    m.material.dispose();
+  }
   for (const b of session.ballBodies) if (b.userData?.mesh) scene.remove(b.userData.mesh);
   session.world.clear();
   hudRoot.innerHTML = '';
@@ -181,6 +185,14 @@ function fire(target) {
 }
 
 let lastTime = performance.now();
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    paused = true;
+  } else {
+    lastTime = performance.now();   // avoid huge dt spike on resume
+    paused = false;
+  }
+});
 function loop(time) {
   const dt = Math.min((time - lastTime) / 1000, 0.05);
   lastTime = time;
@@ -223,6 +235,13 @@ function loop(time) {
 
     if (s.blocksOff === 64 && !s.cleared) {
       s.cleared = true;
+      const continueAfterClear = () => {
+        if (s.mode === 'endless') {
+          startGame(LEVELS[Math.floor(Math.random() * LEVELS.length)].id);
+        } else {
+          showLevelSelectScreen();
+        }
+      };
       if (s.mode === 'puzzle') {
         const stars = puzzleStars(s.ballsRemaining);
         saveData = recordPuzzleClear(saveData, s.level.id, stars, s.ballsRemaining);
@@ -230,14 +249,14 @@ function loop(time) {
         s.hud.setGold(saveData.gold);
         Sfx.levelClear();
         vibrate([40, 30, 40]);
-        showLevelClear(hudRoot, { stars, mode: 'puzzle', onContinue: () => showLevelSelectScreen(), onRetry: () => startGame(s.level.id) });
+        showLevelClear(hudRoot, { stars, mode: 'puzzle', onContinue: continueAfterClear, onRetry: () => startGame(s.level.id) });
       } else {
         saveData = recordZenClear(saveData, s.level.id, s.shotCount);
         saveState(saveData);
         s.hud.setGold(saveData.gold);
         Sfx.levelClear();
         vibrate([40, 30, 40]);
-        showLevelClear(hudRoot, { shots: s.shotCount, mode: 'zen', onContinue: () => showLevelSelectScreen(), onRetry: () => startGame(s.level.id) });
+        showLevelClear(hudRoot, { shots: s.shotCount, mode: 'zen', onContinue: continueAfterClear, onRetry: () => startGame(s.level.id) });
       }
     }
 
