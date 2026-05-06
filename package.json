@@ -1,0 +1,10 @@
+{
+  "name": "8bit-smash-3d",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "dev": "./dev-server.sh"
+  }
+}

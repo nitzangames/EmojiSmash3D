@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>8-Bit Smash</title>
+  <style>
+    html, body { margin:0; padding:0; background:#0e0e1a; color:#fff;
+      width:100vw; height:100vh; overflow:hidden;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
+    canvas#game { display:block; width:100vw; height:100vh; touch-action:none; }
+    #hud { position:fixed; inset:0; pointer-events:none; }
+    #hud > * { pointer-events:auto; }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="hud"></div>
+  <script src="./play-sdk.js"></script>
+  <script type="importmap">
+    { "imports": {
+        "three": "./vendor/three.module.js",
+        "three/addons/geometries/RoundedBoxGeometry.js": "./vendor/RoundedBoxGeometry.js",
+        "physics3d": "./physics3d/index.js"
+    } }
+  </script>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
