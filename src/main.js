@@ -12,12 +12,12 @@ import { createProjectile } from './projectile.js';
 import { attachInput } from './input.js';
 import { OffTracker } from './off-detection.js';
 
-import { Hud, showLevelClear, showFail } from './hud.js';
+import { Hud, showLevelClear, showFail, showPauseMenu } from './hud.js';
 import { showMainMenu, showLevelSelect } from './menu.js';
 
 import { puzzleStars, recordPuzzleClear, recordZenClear } from './progression.js';
 import { load as loadSave, save as saveState } from './save.js';
-import { initAudio, Sfx } from './audio.js';
+import { initAudio, Sfx, setMuted, isMuted } from './audio.js';
 
 // ---- Persistent (one per page) ----
 const canvas   = document.getElementById('game');
@@ -60,6 +60,7 @@ window.addEventListener('resize', resize);
 window.addEventListener('orientationchange', resize);
 
 // ---- Per-session state, replaced on each startGame() ----
+let paused = false;
 let session = null;          // { world, blockBodies, ballBodies, visualWall, tracker, level, mode, ... }
 let saveData = await loadSave();
 initAudio(saveData.settings?.muted);
@@ -128,6 +129,24 @@ async function startGame(levelId) {
   newHud.setLevel(`${level.world} · ${level.id.split('-')[1]}`);
   newHud.setGold(saveData.gold);
 
+  newHud.onPause(() => {
+    paused = true;
+    showPauseMenu(hudRoot, {
+      muted: isMuted(),
+      onResume:      () => { paused = false; },
+      onRestart:     () => { paused = false; startGame(level.id); },
+      onLevelSelect: () => { paused = false; showLevelSelectScreen(); },
+      onToggleSound: () => {
+        const newMuted = !isMuted();
+        setMuted(newMuted);
+        saveData.settings.muted = newMuted;
+        saveState(saveData);
+        paused = false;
+      },
+    });
+  });
+  newHud.onRestart(() => startGame(level.id));
+
   session = {
     world, level, mode: currentMode,
     visualWall, blockBodies, ballBodies, tracker,
@@ -162,6 +181,12 @@ let lastTime = performance.now();
 function loop(time) {
   const dt = Math.min((time - lastTime) / 1000, 0.05);
   lastTime = time;
+
+  if (paused) {
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+    return;
+  }
 
   if (session) {
     const s = session;
