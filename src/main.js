@@ -15,7 +15,7 @@ import { OffTracker } from './off-detection.js';
 import { Hud, showLevelClear, showFail } from './hud.js';
 import { showMainMenu, showLevelSelect } from './menu.js';
 
-import { puzzleStars, recordPuzzleClear } from './progression.js';
+import { puzzleStars, recordPuzzleClear, recordZenClear } from './progression.js';
 import { load as loadSave, save as saveState } from './save.js';
 
 // ---- Persistent (one per page) ----
@@ -187,7 +187,9 @@ function loop(time) {
         s.hud.setGold(saveData.gold);
         showLevelClear(hudRoot, { stars, mode: 'puzzle', onContinue: () => showLevelSelectScreen(), onRetry: () => startGame(s.level.id) });
       } else {
-        // zen — see Task 15 for recordZenClear wiring
+        saveData = recordZenClear(saveData, s.level.id, s.shotCount);
+        saveState(saveData);
+        s.hud.setGold(saveData.gold);
         showLevelClear(hudRoot, { shots: s.shotCount, mode: 'zen', onContinue: () => showLevelSelectScreen(), onRetry: () => startGame(s.level.id) });
       }
     }
