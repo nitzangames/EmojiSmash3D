@@ -1,13 +1,16 @@
 import * as THREE from 'three';
 import { syncMesh } from 'physics3d';
 import { createCamera, reframeCamera } from './camera.js';
-import { PLATFORM, MAX_BALLS_IN_FLIGHT, OFF_DEBOUNCE_MS } from './constants.js';
+import { PLATFORM, MAX_BALLS_IN_FLIGHT, OFF_DEBOUNCE_MS, PUZZLE_BALLS, SETTLE_IDLE_MS } from './constants.js';
 import { OffTracker } from './off-detection.js';
 import { loadLevelTextures } from './level.js';
 import { buildVisualWall, createWorld, addPlatformBody, buildPhysicalWall, syncWallMeshes } from './wall.js';
 import { emojiUrl, levelById } from './levels.js';
 import { createProjectile } from './projectile.js';
 import { attachInput } from './input.js';
+import { Hud, showLevelClear, showFail } from './hud.js';
+import { puzzleStars, recordPuzzleClear } from './progression.js';
+import { load as loadSave, save as saveState } from './save.js';
 
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -58,16 +61,29 @@ const ballBodies = [];
 const tracker = new OffTracker(OFF_DEBOUNCE_MS);
 let blocksOff = 0;
 
-attachInput(
-  canvas,
-  () => camera,
-  () => visualWall,
-  (target) => {
-    if (ballBodies.length >= MAX_BALLS_IN_FLIGHT) return;
-    const ball = createProjectile('ball', scene, world, target);
-    ballBodies.push(ball);
-  },
-);
+const hud = new Hud(document.getElementById('hud'));
+hud.setLevel(`${startLevel.world} · ${startLevel.id.split('-')[1]}`);
+
+let saveData = await loadSave();
+hud.setGold(saveData.gold);
+
+let ballsRemaining = PUZZLE_BALLS;
+hud.setPuzzle(ballsRemaining);
+
+let cleared = false;
+let lastBallFiredAt = -Infinity;
+const hudRoot = document.getElementById('hud');
+
+attachInput(canvas, () => camera, () => visualWall, (target) => {
+  if (cleared) return;
+  if (ballBodies.length >= MAX_BALLS_IN_FLIGHT) return;
+  if (ballsRemaining <= 0) return;
+  const ball = createProjectile('ball', scene, world, target);
+  ballBodies.push(ball);
+  ballsRemaining--;
+  lastBallFiredAt = performance.now();
+  hud.setPuzzle(ballsRemaining);
+});
 
 let lastTime = performance.now();
 function loop(time) {
@@ -87,7 +103,14 @@ function loop(time) {
       tracker.forget(b);
       blockBodies.splice(i, 1);
       blocksOff++;
-      if (blocksOff === 64) console.log('Level cleared!');
+      if (blocksOff === 64 && !cleared) {
+        cleared = true;
+        const stars = puzzleStars(ballsRemaining);
+        saveData = recordPuzzleClear(saveData, startLevel.id, stars, ballsRemaining);
+        saveState(saveData);
+        hud.setGold(saveData.gold);
+        showLevelClear(hudRoot, { stars, mode: 'puzzle', onContinue: () => location.reload(), onRetry: () => location.reload() });
+      }
     }
   }
   // scan balls
@@ -99,6 +122,12 @@ function loop(time) {
       world.removeBody(b);
       tracker.forget(b);
       ballBodies.splice(i, 1);
+    }
+  }
+  if (!cleared && ballsRemaining === 0 && ballBodies.length === 0 && world.stats.activeCount === 0) {
+    if (performance.now() - lastBallFiredAt > SETTLE_IDLE_MS) {
+      cleared = true;
+      showFail(hudRoot, { onRetry: () => location.reload(), onLevelSelect: () => location.reload() });
     }
   }
   renderer.render(scene, camera);
