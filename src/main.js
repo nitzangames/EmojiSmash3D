@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { createCamera, reframeCamera } from './camera.js';
 import { PLATFORM } from './constants.js';
+import { loadLevelTextures } from './level.js';
+import { buildVisualWall } from './wall.js';
+import { emojiUrl, levelById } from './levels.js';
 
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -38,6 +41,10 @@ function resize() {
 resize();
 window.addEventListener('resize', resize);
 window.addEventListener('orientationchange', resize);
+
+const startLevel = levelById('faces-01');
+const tiles = await loadLevelTextures(emojiUrl(startLevel.codepoint));
+for (const m of buildVisualWall(tiles)) scene.add(m);
 
 function loop() {
   renderer.render(scene, camera);
