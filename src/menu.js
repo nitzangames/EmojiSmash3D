@@ -6,7 +6,7 @@ const ORDERED = LEVELS.map(l => l.id);
 export function showMainMenu(root, save, { onPuzzle, onZen, onEndless }) {
   root.innerHTML = `
     <div class="screen">
-      <h1>8-Bit Smash</h1>
+      <h1>Emoji Smash</h1>
       <div class="sub">Knock 'em all off.</div>
       <button class="menu-btn" id="puzzle">Play Puzzle</button>
       <button class="menu-btn" id="zen">Play Zen</button>

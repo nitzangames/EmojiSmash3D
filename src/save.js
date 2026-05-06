@@ -1,5 +1,5 @@
 export const SAVE_VERSION = 1;
-const KEY = '8bit-smash-3d:save:v1';
+const KEY = 'emoji-smash-3d:save:v1';
 
 export function defaultSave() {
   return {
