@@ -37,7 +37,8 @@ export async function load() {
   if (sdk && typeof sdk.load === 'function') {
     try {
       const blob = await sdk.load();
-      return deserialize(blob);
+      if (blob) return deserialize(blob);
+      // blob null/empty → fall through to localStorage
     } catch { /* fallthrough */ }
   }
   if (typeof localStorage !== 'undefined') return deserialize(localStorage.getItem(KEY));
