@@ -18,6 +18,7 @@ import { showMainMenu, showLevelSelect } from './menu.js';
 import { puzzleStars, recordPuzzleClear, recordZenClear } from './progression.js';
 import { load as loadSave, save as saveState } from './save.js';
 import { initAudio, Sfx, setMuted, isMuted } from './audio.js';
+import { vibrate, setHapticsEnabled } from './haptics.js';
 
 // ---- Persistent (one per page) ----
 const canvas   = document.getElementById('game');
@@ -64,6 +65,7 @@ let paused = false;
 let session = null;          // { world, blockBodies, ballBodies, visualWall, tracker, level, mode, ... }
 let saveData = await loadSave();
 initAudio(saveData.settings?.muted);
+setHapticsEnabled(saveData.settings.haptics);
 let detachInput = null;
 let currentMode = 'puzzle';
 
@@ -172,6 +174,7 @@ function fire(target) {
   const ball = createProjectile('ball', scene, s.world, target);
   s.ballBodies.push(ball);
   Sfx.launch();
+  vibrate(10);
   if (s.mode === 'puzzle') { s.ballsRemaining--; s.hud.setPuzzle(s.ballsRemaining); }
   else                     { s.shotCount++; s.hud.setZen(s.shotCount, saveData.zen?.[s.level.id]?.best_shots ?? null); }
   s.lastBallFiredAt = performance.now();
@@ -226,12 +229,14 @@ function loop(time) {
         saveState(saveData);
         s.hud.setGold(saveData.gold);
         Sfx.levelClear();
+        vibrate([40, 30, 40]);
         showLevelClear(hudRoot, { stars, mode: 'puzzle', onContinue: () => showLevelSelectScreen(), onRetry: () => startGame(s.level.id) });
       } else {
         saveData = recordZenClear(saveData, s.level.id, s.shotCount);
         saveState(saveData);
         s.hud.setGold(saveData.gold);
         Sfx.levelClear();
+        vibrate([40, 30, 40]);
         showLevelClear(hudRoot, { shots: s.shotCount, mode: 'zen', onContinue: () => showLevelSelectScreen(), onRetry: () => startGame(s.level.id) });
       }
     }
