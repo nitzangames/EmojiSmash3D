@@ -17,6 +17,7 @@ import { showMainMenu, showLevelSelect } from './menu.js';
 
 import { puzzleStars, recordPuzzleClear, recordZenClear } from './progression.js';
 import { load as loadSave, save as saveState } from './save.js';
+import { initAudio, Sfx } from './audio.js';
 
 // ---- Persistent (one per page) ----
 const canvas   = document.getElementById('game');
@@ -61,6 +62,7 @@ window.addEventListener('orientationchange', resize);
 // ---- Per-session state, replaced on each startGame() ----
 let session = null;          // { world, blockBodies, ballBodies, visualWall, tracker, level, mode, ... }
 let saveData = await loadSave();
+initAudio(saveData.settings?.muted);
 let detachInput = null;
 let currentMode = 'puzzle';
 
@@ -103,6 +105,17 @@ async function startGame(levelId) {
   const tiles = await loadLevelTextures(emojiUrl(level.codepoint));
 
   const world = createWorld();
+  world.onCollision = (a, b) => {
+    const bIsBall  = a.userData?.kind === 'ball'  || b.userData?.kind === 'ball';
+    const aIsBlock = a.userData?.kind === 'block';
+    const bIsBlock = b.userData?.kind === 'block';
+    if (bIsBall) {
+      const impulse = Math.hypot(a.velocity.x - b.velocity.x, a.velocity.y - b.velocity.y, a.velocity.z - b.velocity.z);
+      Sfx.impact(impulse);
+    } else if (aIsBlock && bIsBlock) {
+      Sfx.tumble();
+    }
+  };
   addPlatformBody(world);
   const visualWall = buildVisualWall(tiles);
   for (const m of visualWall) scene.add(m);
@@ -139,6 +152,7 @@ function fire(target) {
   if (s.mode === 'puzzle' && s.ballsRemaining <= 0) return;
   const ball = createProjectile('ball', scene, s.world, target);
   s.ballBodies.push(ball);
+  Sfx.launch();
   if (s.mode === 'puzzle') { s.ballsRemaining--; s.hud.setPuzzle(s.ballsRemaining); }
   else                     { s.shotCount++; s.hud.setZen(s.shotCount, saveData.zen?.[s.level.id]?.best_shots ?? null); }
   s.lastBallFiredAt = performance.now();
@@ -165,6 +179,7 @@ function loop(time) {
         s.tracker.forget(b);
         s.blockBodies.splice(i, 1);
         s.blocksOff++;
+        Sfx.off();
       }
     }
     for (let i = s.ballBodies.length - 1; i >= 0; i--) {
@@ -185,11 +200,13 @@ function loop(time) {
         saveData = recordPuzzleClear(saveData, s.level.id, stars, s.ballsRemaining);
         saveState(saveData);
         s.hud.setGold(saveData.gold);
+        Sfx.levelClear();
         showLevelClear(hudRoot, { stars, mode: 'puzzle', onContinue: () => showLevelSelectScreen(), onRetry: () => startGame(s.level.id) });
       } else {
         saveData = recordZenClear(saveData, s.level.id, s.shotCount);
         saveState(saveData);
         s.hud.setGold(saveData.gold);
+        Sfx.levelClear();
         showLevelClear(hudRoot, { shots: s.shotCount, mode: 'zen', onContinue: () => showLevelSelectScreen(), onRetry: () => startGame(s.level.id) });
       }
     }
