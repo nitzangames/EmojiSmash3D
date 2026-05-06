@@ -1,0 +1,6 @@
+.superpowers/
+node_modules/
+.DS_Store
+screenshot-*.png
+ss-*.png
+/tmp/
