@@ -1,9 +1,12 @@
 import * as THREE from 'three';
+import { syncMesh } from 'physics3d';
 import { createCamera, reframeCamera } from './camera.js';
-import { PLATFORM } from './constants.js';
+import { PLATFORM, MAX_BALLS_IN_FLIGHT } from './constants.js';
 import { loadLevelTextures } from './level.js';
 import { buildVisualWall, createWorld, addPlatformBody, buildPhysicalWall, syncWallMeshes } from './wall.js';
 import { emojiUrl, levelById } from './levels.js';
+import { createProjectile } from './projectile.js';
+import { attachInput } from './input.js';
 
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -50,12 +53,26 @@ const visualWall = buildVisualWall(tiles);
 for (const m of visualWall) scene.add(m);
 const blockBodies = buildPhysicalWall(world, visualWall);
 
+const ballBodies = [];
+
+attachInput(
+  canvas,
+  () => camera,
+  () => visualWall,
+  (target) => {
+    if (ballBodies.length >= MAX_BALLS_IN_FLIGHT) return;
+    const ball = createProjectile('ball', scene, world, target);
+    ballBodies.push(ball);
+  },
+);
+
 let lastTime = performance.now();
 function loop(time) {
   const dt = Math.min((time - lastTime) / 1000, 0.05);
   lastTime = time;
   world.step(dt);
   syncWallMeshes(blockBodies);
+  for (const b of ballBodies) syncMesh(b, b.userData.mesh);
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
 }
