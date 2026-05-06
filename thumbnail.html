@@ -1,0 +1,42 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#0e0e1a;width:512px;height:512px;overflow:hidden}canvas{display:block}#title{position:absolute;left:0;right:0;bottom:18px;text-align:center;font-family:system-ui,sans-serif;color:#fff;font-weight:800;font-size:42px;letter-spacing:2px;text-shadow:0 4px 0 #000}</style>
+</head><body>
+<canvas id="game" width="512" height="512"></canvas>
+<div id="title">8-BIT SMASH</div>
+<script type="importmap">
+{ "imports": {
+  "three": "./vendor/three.module.js",
+  "three/addons/geometries/RoundedBoxGeometry.js": "./vendor/RoundedBoxGeometry.js",
+  "physics3d": "./physics3d/index.js"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { createCamera } from './src/camera.js';
+import { PLATFORM } from './src/constants.js';
+import { loadLevelTextures } from './src/level.js';
+import { buildVisualWall } from './src/wall.js';
+import { emojiUrl, levelById } from './src/levels.js';
+
+const canvas = document.getElementById('game');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(512, 512, false);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0e0e1a);
+scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+const dir = new THREE.DirectionalLight(0xffffff, 0.9); dir.position.set(4, 8, 6); scene.add(dir);
+
+const platform = new THREE.Mesh(new THREE.BoxGeometry(PLATFORM.width, PLATFORM.height, PLATFORM.depth),
+  new THREE.MeshStandardMaterial({ color: 0x4a4a62, roughness: 0.9 }));
+platform.position.set(0, -PLATFORM.height/2, 0);
+scene.add(platform);
+
+const tiles = await loadLevelTextures(emojiUrl(levelById('faces-01').codepoint));
+for (const m of buildVisualWall(tiles)) scene.add(m);
+
+const camera = createCamera(512, 512);
+renderer.render(scene, camera);
+window.__rendered = true;
+</script></body></html>
