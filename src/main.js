@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { createCamera, reframeCamera } from './camera.js';
 import { PLATFORM } from './constants.js';
 import { loadLevelTextures } from './level.js';
-import { buildVisualWall } from './wall.js';
+import { buildVisualWall, createWorld, addPlatformBody, buildPhysicalWall, syncWallMeshes } from './wall.js';
 import { emojiUrl, levelById } from './levels.js';
 
 const canvas = document.getElementById('game');
@@ -44,9 +44,18 @@ window.addEventListener('orientationchange', resize);
 
 const startLevel = levelById('faces-01');
 const tiles = await loadLevelTextures(emojiUrl(startLevel.codepoint));
-for (const m of buildVisualWall(tiles)) scene.add(m);
+const world = createWorld();
+addPlatformBody(world);
+const visualWall = buildVisualWall(tiles);
+for (const m of visualWall) scene.add(m);
+const blockBodies = buildPhysicalWall(world, visualWall);
 
-function loop() {
+let lastTime = performance.now();
+function loop(time) {
+  const dt = Math.min((time - lastTime) / 1000, 0.05);
+  lastTime = time;
+  world.step(dt);
+  syncWallMeshes(blockBodies);
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
 }
