@@ -17,7 +17,7 @@ import { attachInput } from './input.js';
 import { OffTracker } from './off-detection.js';
 
 import { Hud, showLevelClear, showPauseMenu } from './hud.js';
-import { showShop } from './menu.js';
+import { showShop, showBuyStars } from './menu.js';
 
 import { LEVEL_REWARD, addGold, buyItem, buyStars, consumeItem, inventoryCount } from './progression.js';
 import { load as loadSave, save as saveState } from './save.js';
@@ -165,6 +165,18 @@ function showShopScreen() {
           render();
         }
       },
+      onBuyStarsClick: () => showBuyStarsScreen(),
+    });
+  };
+  render();
+}
+
+function showBuyStarsScreen() {
+  hudRoot.innerHTML = '';
+  if (session) tearDown();
+  const render = () => {
+    showBuyStars(screensEl, saveData, {
+      onBack: () => showShopScreen(),
       onBuyStars: (packId) => {
         const next = buyStars(saveData, packId);
         if (next) {

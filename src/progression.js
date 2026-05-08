@@ -4,8 +4,9 @@ export const LEVEL_REWARD = 10;
 
 // Star packs available for purchase with nbucks. Larger packs give better rates.
 export const STAR_PACKS = [
-  { id: 'small',  stars: 50,  nbucks: 5  },
-  { id: 'medium', stars: 200, nbucks: 15 }, // 33% better stars/nbuck
+  { id: 'small',  stars: 50,   nbucks: 5  },  // 10  ★/ⓝ
+  { id: 'medium', stars: 200,  nbucks: 15 },  // ~13 ★/ⓝ
+  { id: 'large',  stars: 1000, nbucks: 50 },  // 20  ★/ⓝ
 ];
 
 export function addGold(save, amount) {
