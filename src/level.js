@@ -58,6 +58,9 @@ export async function tileToTexture(tileBuf) {
   tex.magFilter = THREE.NearestFilter;
   tex.minFilter = THREE.NearestFilter;
   tex.generateMipmaps = false;
+  // Twemoji PNGs are sRGB-encoded; without this the SRGB output pass
+  // gamma-darkens them and the colors look washed out.
+  tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
 

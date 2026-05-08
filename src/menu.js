@@ -1,52 +1,58 @@
-import { WORLDS, LEVELS, emojiUrl } from './levels.js';
-import { isLevelUnlocked, isEndlessUnlocked } from './progression.js';
+import { SHAPES, PROJECTILE_KINDS } from './throwables.js';
+import { STAR_PACKS } from './progression.js';
+import { renderShapePreview } from './preview.js';
 
-const ORDERED = LEVELS.map(l => l.id);
-
-export function showMainMenu(root, save, { onPuzzle, onZen, onEndless }) {
+// Single-screen flow: shows current gold + nbucks, lets the player buy
+// throwables (with stars) and star packs (with nbucks), then hit Play.
+// Re-rendered on each buy via the caller.
+export function showShop(root, save, { onPlay, onBuy, onBuyStars }) {
+  const inv = save.inventory || {};
+  const items = PROJECTILE_KINDS.filter(k => SHAPES[k].cost > 0);
   root.innerHTML = `
     <div class="screen">
-      <h1>Emoji Smash</h1>
-      <div class="sub">Knock 'em all off.</div>
-      <button class="menu-btn" id="puzzle">Play Puzzle</button>
-      <button class="menu-btn" id="zen">Play Zen</button>
-      <button class="menu-btn secondary" id="endless" ${isEndlessUnlocked(save, ORDERED) ? '' : 'disabled'}>
-        ${isEndlessUnlocked(save, ORDERED) ? 'Endless Mode' : 'Endless (clear all 50 puzzles)'}
-      </button>
-    </div>`;
-  root.querySelector('#puzzle').onclick = onPuzzle;
-  root.querySelector('#zen').onclick    = onZen;
-  if (isEndlessUnlocked(save, ORDERED)) root.querySelector('#endless').onclick = onEndless;
-}
+      <h1>Shop</h1>
+      <div class="sub">★ ${save.gold || 0} &nbsp;·&nbsp; ⓝ ${save.nbucks || 0}</div>
 
-export function showLevelSelect(root, save, mode, { onPick, onBack }) {
-  let activeWorld = WORLDS[0].id;
-  const render = () => {
-    root.innerHTML = `
-      <div class="screen">
-        <h1>${mode === 'puzzle' ? 'Puzzle Mode' : 'Zen Mode'}</h1>
-        <div class="world-tabs">
-          ${WORLDS.map(w => `<button data-w="${w.id}" class="${w.id === activeWorld ? 'active' : ''}">${w.title}</button>`).join('')}
-        </div>
-        <div class="level-grid">
-          ${LEVELS.filter(l => l.world === activeWorld).map(l => {
-            const unlocked = isLevelUnlocked(l.id, save, ORDERED);
-            const stars = save.puzzle?.[l.id]?.stars || 0;
-            return `<div class="level-cell ${unlocked ? '' : 'locked'}" data-id="${l.id}">
-              <img src="${emojiUrl(l.codepoint)}" alt="${l.name}"/>
-              <div class="stars">${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</div>
+      <div class="shop-section">Throwables</div>
+      <div class="shop-grid">
+        ${items.map(k => {
+          const cost = SHAPES[k].cost;
+          const owned = inv[k] || 0;
+          const canAfford = (save.gold || 0) >= cost;
+          const icon = renderShapePreview(k, 128);
+          return `
+            <div class="shop-item">
+              <img class="shop-item-icon" src="${icon}" alt="${SHAPES[k].label}" />
+              <div class="shop-item-name">${SHAPES[k].label}</div>
+              <div class="shop-item-count">×${owned}</div>
+              <button class="menu-btn secondary shop-buy" data-buy="${k}" ${canAfford ? '' : 'disabled'}>
+                ★${cost}
+              </button>
             </div>`;
-          }).join('')}
-        </div>
-        <button class="menu-btn secondary" id="back">Back</button>
-      </div>`;
-    root.querySelector('#back').onclick = onBack;
-    root.querySelectorAll('.world-tabs button').forEach(b => {
-      b.onclick = () => { activeWorld = b.dataset.w; render(); };
-    });
-    root.querySelectorAll('.level-cell:not(.locked)').forEach(cell => {
-      cell.onclick = () => onPick(cell.dataset.id);
-    });
-  };
-  render();
+        }).join('')}
+      </div>
+
+      <div class="shop-section">Buy Stars</div>
+      <div class="shop-grid">
+        ${STAR_PACKS.map(p => {
+          const canAfford = (save.nbucks || 0) >= p.nbucks;
+          return `
+            <div class="shop-item">
+              <div class="shop-item-stars">★${p.stars}</div>
+              <button class="menu-btn secondary shop-buy" data-pack="${p.id}" ${canAfford ? '' : 'disabled'}>
+                ⓝ ${p.nbucks}
+              </button>
+            </div>`;
+        }).join('')}
+      </div>
+
+      <button class="menu-btn" id="play">Play</button>
+    </div>`;
+  root.querySelector('#play').onclick = onPlay;
+  root.querySelectorAll('[data-buy]').forEach(btn => {
+    btn.onclick = () => onBuy(btn.dataset.buy);
+  });
+  root.querySelectorAll('[data-pack]').forEach(btn => {
+    btn.onclick = () => onBuyStars(btn.dataset.pack);
+  });
 }

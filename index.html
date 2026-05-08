@@ -5,47 +5,81 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Emoji Smash</title>
   <style>
-    html, body { margin:0; padding:0; background:#0e0e1a; color:#fff;
+    html, body { margin:0; padding:0; background:#000; color:#fff;
       width:100vw; height:100vh; overflow:hidden;
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-      -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
-    canvas#game { display:block; width:100vw; height:100vh; touch-action:none; }
-    #hud { position:fixed; inset:0; pointer-events:none; }
+      -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none;
+      display:flex; align-items:center; justify-content:center; }
+
+    /* 9:16 portrait playfield, centered, letterboxed by the body's flex centering. */
+    #frame {
+      position: relative;
+      background: #0e0e1a;
+      width: min(100vw, calc(100vh * 9 / 16));
+      height: min(100vh, calc(100vw * 16 / 9));
+      overflow: hidden;
+    }
+
+    canvas#game { display:block; width:100%; height:100%; touch-action:none; position:absolute; inset:0; }
+    #hud { position:absolute; inset:0; pointer-events:none; }
     #hud > * { pointer-events:auto; }
-    .hud-row { position: absolute; left: 0; right: 0; padding: 16px; display: flex; justify-content: space-between; align-items: center; pointer-events: auto; }
+    .hud-row { position: absolute; left: 0; right: 0; padding: 16px; display: flex; justify-content: space-between; align-items: center; gap: 8px; pointer-events: auto; }
     .hud-top    { top: 0; }
     .hud-bottom { bottom: 0; }
+    .hud-bottom-center { justify-content: center; }
+    .hud-side { flex: 1; display: flex; align-items: center; gap: 8px; }
+    .hud-side.hud-left  { justify-content: flex-start; }
+    .hud-side.hud-right { justify-content: flex-end; }
     .hud-label  { background: rgba(0,0,0,0.5); color: #fff; padding: 6px 12px; border-radius: 18px; font-weight: 600; font-size: 14px; }
-    .hud-pips   { display: flex; gap: 4px; }
-    .hud-pip    { width: 14px; height: 14px; border-radius: 50%; background: #555; box-shadow: inset 0 0 0 1px #888; }
-    .hud-pip.full { background: #e94560; box-shadow: inset 0 0 0 1px #ff90a0; }
-    .hud-btn    { background: rgba(0,0,0,0.6); color: #fff; border: 0; border-radius: 50%; width: 44px; height: 44px; font-size: 18px; cursor: pointer; }
+    .hud-btn    { background: rgba(0,0,0,0.6); color: #fff; border: 0; border-radius: 50%; width: 44px; height: 44px; font-size: 18px; cursor: pointer; display:flex; align-items:center; justify-content:center; }
     .hud-gold   { font-size: 14px; font-weight: 700; color: #f1c40f; background: rgba(0,0,0,0.5); padding: 6px 12px; border-radius: 18px; }
-    .modal      { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 10; }
-    .modal .panel { background: #1a1a2e; border-radius: 16px; padding: 28px 32px; min-width: 280px; text-align: center; }
+
+    /* Ammo picker: ◀  Name xN  ▶ */
+    .ammo-picker { display:flex; align-items:center; gap:6px; background: rgba(0,0,0,0.55); border-radius: 22px; padding: 4px; }
+    .ammo-picker .ammo-arrow { width:36px; height:36px; font-size:14px; background:transparent; }
+    .ammo-picker .ammo-arrow:active { background: rgba(255,255,255,0.1); }
+    .ammo-label { min-width: 80px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+      font-weight:700; font-size:11px; color:#fff; font-variant-numeric: tabular-nums; padding: 2px 8px; }
+    .ammo-meta { display:flex; gap:5px; align-items:center; }
+    .ammo-meta .ammo-name { color:#fff; }
+    .ammo-meta .ammo-count { color:#f1c40f; }
+    .ammo-icon { width: 36px; height: 36px; object-fit: contain; display: block; }
+
+    .modal      { position: absolute; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 10; }
+    .modal .panel { background: #1a1a2e; border-radius: 16px; padding: 28px 32px; min-width: 240px; text-align: center; }
     .modal h2   { margin: 0 0 12px; }
-    .modal .stars { font-size: 36px; letter-spacing: 8px; margin: 8px 0 16px; }
     .modal button { display: block; margin: 8px auto; padding: 10px 24px; border: 0; border-radius: 10px; background: #e94560; color: #fff; cursor: pointer; font-size: 14px; font-weight: 600; min-width: 200px; }
     .modal button.secondary { background: #444; }
-    .screen { position: fixed; inset: 0; background: #0e0e1a; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 5; padding: 24px; }
-    .screen h1 { font-size: 36px; margin: 0 0 8px; }
-    .screen .sub { color: #888; margin: 0 0 32px; }
-    .screen .menu-btn { display: block; min-width: 240px; margin: 8px 0; padding: 14px 22px; background: #e94560; color: #fff; border: 0; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 600; }
+    .modal .reward { font-size: 28px; font-weight: 800; color: #f1c40f; margin: 8px 0 16px; }
+
+    .screen { position: absolute; inset: 0; background: #0e0e1a; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; z-index: 5; padding: 18px; overflow-y: auto; }
+    .screen h1 { font-size: 28px; margin: 0 0 4px; }
+    .screen .sub { color: #888; margin: 0 0 14px; font-weight: 700; }
+    .screen .menu-btn { display: block; width: 100%; max-width: 360px; margin: 6px 0; padding: 14px 20px; background: #e94560; color: #fff; border: 0; border-radius: 12px; cursor: pointer; font-size: 17px; font-weight: 700; }
     .screen .menu-btn.secondary { background: #444; }
     .screen .menu-btn[disabled] { opacity: 0.4; cursor: not-allowed; }
-    .world-tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 16px; }
-    .world-tabs button { background: #1a1a2e; color: #ccc; border: 0; padding: 8px 14px; border-radius: 16px; cursor: pointer; font-size: 13px; }
-    .world-tabs button.active { background: #e94560; color: #fff; }
-    .level-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; max-width: 500px; }
-    .level-cell { background: #1a1a2e; border-radius: 12px; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
-    .level-cell img { width: 48px; height: 48px; image-rendering: pixelated; }
-    .level-cell.locked { opacity: 0.3; cursor: not-allowed; }
-    .level-cell .stars { font-size: 12px; color: #f1c40f; margin-top: 4px; }
+
+    .shop-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; width: 100%; max-width: 460px; margin-bottom: 12px; }
+    .shop-item { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; background: #1a1a2e; border-radius: 12px; padding: 10px 8px; }
+    .shop-item-icon { width: 72px; height: 72px; object-fit: contain; }
+    .shop-item-name { font-weight: 700; font-size: 14px; text-align: center; }
+    .shop-item-count { color: #aaa; font-size: 12px; }
+    .shop-item-stars { font-size: 26px; font-weight: 800; color: #f1c40f; padding: 12px 0; }
+    .shop-buy { width: 100% !important; min-width: 0 !important; max-width: none !important; padding: 7px 8px !important; font-size: 14px !important; margin: 6px 0 0 !important; }
+    .shop-section { width: 100%; max-width: 460px; margin: 12px 0 6px; font-size: 13px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+
+    #version { position: absolute; right: 8px; bottom: 8px; z-index: 1000; pointer-events: none;
+      font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.55);
+      background: rgba(0,0,0,0.35); padding: 3px 8px; border-radius: 10px;
+      font-variant-numeric: tabular-nums; }
   </style>
 </head>
 <body>
-  <canvas id="game"></canvas>
-  <div id="hud"></div>
+  <div id="frame">
+    <canvas id="game"></canvas>
+    <div id="hud"></div>
+    <div id="version">v0.0.0</div>
+  </div>
   <script src="./play-sdk.js"></script>
   <script type="importmap">
     { "imports": {

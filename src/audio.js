@@ -47,6 +47,7 @@ export const Sfx = {
     tone({ freq: 320, duration: 0.04, type: 'square', gain: 0.06, decay: 0.04 });
   },
   off:       () => tone({ freq: 120, duration: 0.12, type: 'triangle', gain: 0.12, decay: 0.12 }),
+  splash:    () => tone({ freq: 1100, freqEnd: 240, duration: 0.18, type: 'triangle', gain: 0.12, decay: 0.18 }),
   levelClear: () => {
     [523, 659, 784].forEach((f, i) => setTimeout(() => tone({ freq: f, duration: 0.18, type: 'triangle', gain: 0.15, decay: 0.18 }), i * 100));
   },

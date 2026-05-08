@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { OffTracker } from '../src/off-detection.js';
 
 const STAY = { position: { x: 0, y: 1, z: 0 } };
-const OFF  = { position: { x: 0, y: -1, z: 0 } };
+const OFF  = { position: { x: 0, y: -3, z: 0 } };
 
 test('body on platform never marked off', () => {
   const t = new OffTracker(200);

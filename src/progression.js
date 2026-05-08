@@ -1,37 +1,53 @@
-import { goldFromPuzzleClear, goldFromZenClear, puzzleStars } from './modes.js';
+// Reward and economy operations for the simplified zen-only loop.
 
-// orderedLevels: array of level ids in canonical order across all worlds.
-// save shape (see save.js): { gold, puzzle: { id: { stars, balls_left_best } }, zen: { id: { best_shots } } }
+export const LEVEL_REWARD = 10;
 
-export function isLevelUnlocked(levelId, save, orderedLevels) {
-  const idx = orderedLevels.indexOf(levelId);
-  if (idx <= 0) return idx === 0;  // first level always unlocked
-  const prev = orderedLevels[idx - 1];
-  return !!(save.puzzle && save.puzzle[prev]);
+// Star packs available for purchase with nbucks. Larger packs give better rates.
+export const STAR_PACKS = [
+  { id: 'small',  stars: 50,  nbucks: 5  },
+  { id: 'medium', stars: 200, nbucks: 15 }, // 33% better stars/nbuck
+];
+
+export function addGold(save, amount) {
+  return { ...save, gold: (save.gold || 0) + amount };
 }
 
-export function recordPuzzleClear(save, levelId, stars, ballsLeft) {
-  const out = { ...save, puzzle: { ...save.puzzle } };
-  const prev = out.puzzle[levelId] || { stars: 0, balls_left_best: 0 };
-  out.puzzle[levelId] = {
-    stars: Math.max(prev.stars, stars),
-    balls_left_best: Math.max(prev.balls_left_best, ballsLeft),
+export function addNbucks(save, amount) {
+  return { ...save, nbucks: (save.nbucks || 0) + amount };
+}
+
+// Returns a new save with the item added and gold deducted, or null if the
+// player can't afford it.
+export function buyItem(save, item, cost) {
+  if ((save.gold || 0) < cost) return null;
+  const inv = save.inventory || {};
+  return {
+    ...save,
+    gold: save.gold - cost,
+    inventory: { ...inv, [item]: (inv[item] || 0) + 1 },
   };
-  out.gold = (save.gold || 0) + goldFromPuzzleClear(stars);
-  return out;
 }
 
-export function recordZenClear(save, levelId, shots) {
-  const out = { ...save, zen: { ...save.zen } };
-  const prev = out.zen[levelId];
-  out.zen[levelId] = { best_shots: prev ? Math.min(prev.best_shots, shots) : shots };
-  out.gold = (save.gold || 0) + goldFromZenClear(shots);
-  return out;
+// Spend nbucks to receive a fixed amount of stars. Returns null if insufficient.
+export function buyStars(save, packId) {
+  const pack = STAR_PACKS.find(p => p.id === packId);
+  if (!pack) return null;
+  if ((save.nbucks || 0) < pack.nbucks) return null;
+  return {
+    ...save,
+    nbucks: save.nbucks - pack.nbucks,
+    gold: (save.gold || 0) + pack.stars,
+  };
 }
 
-export function isEndlessUnlocked(save, orderedLevels) {
-  return orderedLevels.every(id => save.puzzle && save.puzzle[id]);
+// Returns a new save with one of the item removed; no-op if count is already 0.
+export function consumeItem(save, item) {
+  const inv = save.inventory || {};
+  const n = inv[item] || 0;
+  if (n <= 0) return save;
+  return { ...save, inventory: { ...inv, [item]: n - 1 } };
 }
 
-// Convenience: compute stars given balls remaining.
-export { puzzleStars };
+export function inventoryCount(save, item) {
+  return save.inventory?.[item] || 0;
+}

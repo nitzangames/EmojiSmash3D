@@ -23,7 +23,13 @@ export function buildVisualWall(tiles) {
     for (let col = 0; col < WALL.cols; col++) {
       const muralRow = 7 - row;
       const tex = tiles[muralRow][col];
-      const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 });
+      const mat = new THREE.MeshStandardMaterial({
+        map: tex,
+        emissiveMap: tex,
+        emissive: 0xffffff,
+        emissiveIntensity: 0.25,
+        roughness: 0.7,
+      });
       const m = new THREE.Mesh(SHARED_GEOMETRY, mat);
       m.position.set(...gridToWorld(col, row));
       m.userData = { col, row };

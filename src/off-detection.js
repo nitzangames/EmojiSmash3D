@@ -1,8 +1,10 @@
 // Pure: tracks per-body "off-the-platform" debounce timing.
 // "Off" geometry test is supplied by the caller (just pass the body's position).
 
+// Despawn only when the body has fallen 2 blocks below the platform top (y=0).
+// Bodies that fly off horizontally stay alive until they drop past this threshold.
 export function isPastPlatform(pos) {
-  return Math.abs(pos.x) > 4 || Math.abs(pos.z) > 4 || pos.y < -0.5;
+  return pos.y < -2;
 }
 
 export class OffTracker {

@@ -1,0 +1,17 @@
+.git/*
+.gitignore
+.superpowers/*
+.DS_Store
+docs/*
+tests/*
+node_modules/*
+mockups.html
+thumbnails.html
+src/mockups.js
+src/thumbnails.js
+render-thumbnail.js
+thumbnail.html
+README.md
+CLAUDE.md
+*.log
+.zipignore

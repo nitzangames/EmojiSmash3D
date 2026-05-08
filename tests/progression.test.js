@@ -1,61 +1,80 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isLevelUnlocked, recordPuzzleClear, recordZenClear, isEndlessUnlocked } from '../src/progression.js';
+import {
+  addGold, addNbucks, buyItem, buyStars, consumeItem, inventoryCount,
+  LEVEL_REWARD, STAR_PACKS,
+} from '../src/progression.js';
 
-const orderedLevels = ['l1', 'l2', 'l3'];
-
-test('first level is unlocked by default', () => {
-  assert.equal(isLevelUnlocked('l1', { puzzle: {} }, orderedLevels), true);
+test('LEVEL_REWARD is 10', () => {
+  assert.equal(LEVEL_REWARD, 10);
 });
 
-test('subsequent levels locked until previous puzzle clear', () => {
-  assert.equal(isLevelUnlocked('l2', { puzzle: {} }, orderedLevels), false);
+test('addGold adds to existing balance', () => {
+  const s = addGold({ gold: 50 }, 10);
+  assert.equal(s.gold, 60);
 });
 
-test('clearing l1 in puzzle unlocks l2', () => {
-  let save = { gold: 0, puzzle: {}, zen: {} };
-  save = recordPuzzleClear(save, 'l1', 3, 5);
-  assert.equal(isLevelUnlocked('l2', save, orderedLevels), true);
+test('addGold handles missing gold field', () => {
+  const s = addGold({}, 10);
+  assert.equal(s.gold, 10);
 });
 
-test('recordPuzzleClear stores best stars and best balls-remaining', () => {
-  let s = { gold: 0, puzzle: {}, zen: {} };
-  s = recordPuzzleClear(s, 'l1', 2, 3);  // 2 stars, 3 balls remaining
-  s = recordPuzzleClear(s, 'l1', 3, 5);  // better
-  assert.equal(s.puzzle.l1.stars, 3);
-  assert.equal(s.puzzle.l1.balls_left_best, 5);
-  // earlier worse clear must not regress
-  s = recordPuzzleClear(s, 'l1', 1, 1);
-  assert.equal(s.puzzle.l1.stars, 3);
-  assert.equal(s.puzzle.l1.balls_left_best, 5);
+test('buyItem deducts gold and increments inventory', () => {
+  const s = buyItem({ gold: 20, inventory: { chair: 1 } }, 'chair', 5);
+  assert.equal(s.gold, 15);
+  assert.equal(s.inventory.chair, 2);
 });
 
-test('recordZenClear stores best (lowest) shots', () => {
-  let s = { gold: 0, puzzle: {}, zen: {} };
-  s = recordZenClear(s, 'l1', 12);
-  s = recordZenClear(s, 'l1', 9);   // better
-  s = recordZenClear(s, 'l1', 15);  // worse
-  assert.equal(s.zen.l1.best_shots, 9);
+test('buyItem returns null when player cannot afford', () => {
+  const s = buyItem({ gold: 3, inventory: { chair: 0 } }, 'chair', 5);
+  assert.equal(s, null);
 });
 
-test('puzzle clear adds gold = 10 + 5*stars', () => {
-  let s = { gold: 100, puzzle: {}, zen: {} };
-  s = recordPuzzleClear(s, 'l1', 3, 5);
-  assert.equal(s.gold, 125);
+test('buyItem starts a new inventory key from zero', () => {
+  const s = buyItem({ gold: 20, inventory: {} }, 'desk', 7);
+  assert.equal(s.gold, 13);
+  assert.equal(s.inventory.desk, 1);
 });
 
-test('zen clear adds gold = 10 + max(0, 20 - shots)', () => {
-  let s = { gold: 100, puzzle: {}, zen: {} };
-  s = recordZenClear(s, 'l1', 5);
-  assert.equal(s.gold, 125);
+test('consumeItem decrements count', () => {
+  const s = consumeItem({ inventory: { chair: 3 } }, 'chair');
+  assert.equal(s.inventory.chair, 2);
 });
 
-test('endless unlocked only after all levels cleared in puzzle', () => {
-  let s = { gold: 0, puzzle: {}, zen: {} };
-  assert.equal(isEndlessUnlocked(s, orderedLevels), false);
-  s = recordPuzzleClear(s, 'l1', 1, 0);
-  s = recordPuzzleClear(s, 'l2', 1, 0);
-  assert.equal(isEndlessUnlocked(s, orderedLevels), false);
-  s = recordPuzzleClear(s, 'l3', 1, 0);
-  assert.equal(isEndlessUnlocked(s, orderedLevels), true);
+test('consumeItem on zero is a no-op', () => {
+  const s = consumeItem({ inventory: { chair: 0 } }, 'chair');
+  assert.equal(s.inventory.chair, 0);
+});
+
+test('inventoryCount handles missing fields', () => {
+  assert.equal(inventoryCount({}, 'chair'), 0);
+  assert.equal(inventoryCount({ inventory: {} }, 'chair'), 0);
+  assert.equal(inventoryCount({ inventory: { chair: 4 } }, 'chair'), 4);
+});
+
+test('addNbucks adds to existing balance', () => {
+  assert.equal(addNbucks({ nbucks: 5 }, 10).nbucks, 15);
+  assert.equal(addNbucks({}, 7).nbucks, 7);
+});
+
+test('STAR_PACKS expose at least one option', () => {
+  assert.ok(STAR_PACKS.length >= 1);
+  for (const p of STAR_PACKS) {
+    assert.ok(p.id && typeof p.stars === 'number' && typeof p.nbucks === 'number');
+  }
+});
+
+test('buyStars deducts nbucks and adds stars', () => {
+  const small = STAR_PACKS.find(p => p.id === 'small');
+  const s = buyStars({ gold: 0, nbucks: 50 }, 'small');
+  assert.equal(s.nbucks, 50 - small.nbucks);
+  assert.equal(s.gold, small.stars);
+});
+
+test('buyStars returns null when insufficient nbucks', () => {
+  assert.equal(buyStars({ gold: 0, nbucks: 1 }, 'small'), null);
+});
+
+test('buyStars returns null for unknown pack id', () => {
+  assert.equal(buyStars({ gold: 0, nbucks: 999 }, 'nope'), null);
 });

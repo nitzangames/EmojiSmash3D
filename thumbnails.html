@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Thumbnail Mockups · Emoji Smash</title>
+  <style>
+    html, body { margin:0; padding:24px; background:#0e0e1a; color:#fff;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      box-sizing:border-box; min-height:100vh; }
+    h1 { margin: 0 0 18px; font-size: 22px; opacity: 0.85; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      max-width: 1100px;
+    }
+
+    .thumb {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      border-radius: 18px;
+      overflow: hidden;
+      background: #000;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+    }
+    .thumb canvas { display:block; width:100%; height:100%; }
+
+    /* "EMOJI SMASH" title baked into each thumbnail. */
+    .thumb .title {
+      position: absolute;
+      top: 14px; left: 0; right: 0;
+      text-align: center;
+      font-size: clamp(28px, 5vw, 56px);
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: #fff;
+      text-shadow:
+        0 0 8px rgba(0,0,0,0.6),
+        2px 4px 0 rgba(0,0,0,0.55),
+        4px 4px 12px rgba(233,69,96,0.6);
+      pointer-events: none;
+      line-height: 1;
+    }
+    .thumb .title-sub {
+      position: absolute;
+      top: clamp(54px, 10vw, 90px); left: 0; right: 0;
+      text-align: center;
+      font-size: clamp(13px, 2.2vw, 22px);
+      font-weight: 700;
+      letter-spacing: 6px;
+      color: #f1c40f;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.7);
+      pointer-events: none;
+    }
+
+    .caption {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #aaa;
+      text-align: center;
+    }
+
+    #version {
+      position: fixed; right: 8px; bottom: 8px;
+      font-size: 11px; font-weight: 600;
+      color: rgba(255,255,255,0.55);
+      background: rgba(0,0,0,0.35);
+      padding: 3px 8px; border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Thumbnail mockups · in-engine renders</h1>
+  <div class="grid">
+    <div>
+      <div class="thumb" id="action">
+        <canvas></canvas>
+        <div class="title">EMOJI<br>SMASH</div>
+        <div class="title-sub">3D</div>
+      </div>
+      <div class="caption">Cannonball impact</div>
+    </div>
+    <div>
+      <div class="thumb" id="lineup">
+        <canvas></canvas>
+        <div class="title">EMOJI<br>SMASH</div>
+        <div class="title-sub">3D</div>
+      </div>
+      <div class="caption">Furniture lineup</div>
+    </div>
+    <div>
+      <div class="thumb" id="chair-toss">
+        <canvas></canvas>
+        <div class="title">EMOJI<br>SMASH</div>
+        <div class="title-sub">3D</div>
+      </div>
+      <div class="caption">Chair toss</div>
+    </div>
+    <div>
+      <div class="thumb" id="bomb">
+        <canvas></canvas>
+        <div class="title">EMOJI<br>SMASH</div>
+        <div class="title-sub">3D</div>
+      </div>
+      <div class="caption">Bomb chaos</div>
+    </div>
+  </div>
+  <div id="version">v0.0.0</div>
+
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.js" } }
+  </script>
+  <script type="module" src="./src/thumbnails.js"></script>
+</body>
+</html>

@@ -1,9 +1,40 @@
 <!doctype html>
 <html><head><meta charset="utf-8">
-<style>html,body{margin:0;background:#0e0e1a;width:512px;height:512px;overflow:hidden}canvas{display:block}#title{position:absolute;left:0;right:0;bottom:18px;text-align:center;font-family:system-ui,sans-serif;color:#fff;font-weight:800;font-size:42px;letter-spacing:2px;text-shadow:0 4px 0 #000}</style>
+<style>
+  html,body { margin:0; background:#0e0e1a; width:512px; height:512px; overflow:hidden;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; }
+  canvas { display:block; }
+  #title {
+    position: absolute;
+    top: 14px; left: 0; right: 0;
+    text-align: center;
+    font-size: 56px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #fff;
+    line-height: 1;
+    text-shadow:
+      0 0 8px rgba(0,0,0,0.6),
+      2px 4px 0 rgba(0,0,0,0.55),
+      4px 4px 12px rgba(233,69,96,0.6);
+    pointer-events: none;
+  }
+  #title-sub {
+    position: absolute;
+    top: 144px; left: 0; right: 0;
+    text-align: center;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 6px;
+    color: #f1c40f;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.7);
+    pointer-events: none;
+  }
+</style>
 </head><body>
 <canvas id="game" width="512" height="512"></canvas>
-<div id="title">EMOJI SMASH</div>
+<div id="title">EMOJI<br>SMASH</div>
+<div id="title-sub">3D</div>
 <script type="importmap">
 { "imports": {
   "three": "./vendor/three.module.js",
@@ -13,30 +44,121 @@
 </script>
 <script type="module">
 import * as THREE from 'three';
-import { createCamera } from './src/camera.js';
 import { PLATFORM } from './src/constants.js';
 import { loadLevelTextures } from './src/level.js';
-import { buildVisualWall } from './src/wall.js';
-import { emojiUrl, levelById } from './src/levels.js';
+import { emojiUrl } from './src/levels.js';
 
 const canvas = document.getElementById('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setSize(512, 512, false);
+renderer.setPixelRatio(1);
+
+// Sky gradient + PMREM env map (same recipe as the live game).
+function makeSkyTexture() {
+  const c = document.createElement('canvas');
+  c.width = 16; c.height = 256;
+  const ctx = c.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 0, 256);
+  g.addColorStop(0.00, '#3f6dbb');
+  g.addColorStop(0.50, '#a4cdec');
+  g.addColorStop(0.70, '#6e9fbe');
+  g.addColorStop(1.00, '#2a4f72');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 16, 256);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  return tex;
+}
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0e0e1a);
-scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-const dir = new THREE.DirectionalLight(0xffffff, 0.9); dir.position.set(4, 8, 6); scene.add(dir);
+const skyTex = makeSkyTexture();
+scene.background = skyTex;
 
-const platform = new THREE.Mesh(new THREE.BoxGeometry(PLATFORM.width, PLATFORM.height, PLATFORM.depth),
-  new THREE.MeshStandardMaterial({ color: 0x4a4a62, roughness: 0.9 }));
-platform.position.set(0, -PLATFORM.height/2, 0);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromEquirectangular(skyTex).texture;
+pmrem.dispose();
+
+scene.fog = new THREE.Fog(0x9fc6df, 35, 80);
+scene.add(new THREE.AmbientLight(0xffffff, 0.95));
+const dl = new THREE.DirectionalLight(0xffffff, 1.3);
+dl.position.set(4, 8, 6);
+scene.add(dl);
+
+// Seabed + water.
+const seabed = new THREE.Mesh(
+  new THREE.PlaneGeometry(80, 80),
+  new THREE.MeshStandardMaterial({ color: 0x1a2238, roughness: 1 }),
+);
+seabed.rotation.x = -Math.PI / 2;
+seabed.position.y = -5;
+scene.add(seabed);
+
+const waterGeo = new THREE.PlaneGeometry(120, 120, 48, 48);
+const pos = waterGeo.attributes.position;
+for (let i = 0; i < pos.count; i++) {
+  const x = pos.getX(i), y = pos.getY(i);
+  pos.setZ(i, Math.sin(x * 0.55) * 0.14 + Math.cos(y * 0.40) * 0.10);
+}
+pos.needsUpdate = true;
+waterGeo.computeVertexNormals();
+const water = new THREE.Mesh(waterGeo, new THREE.MeshStandardMaterial({
+  color: 0x4ec3e8, roughness: 0.12, metalness: 0.85,
+  transparent: true, opacity: 0.88,
+}));
+water.rotation.x = -Math.PI / 2;
+water.position.y = -0.85;
+scene.add(water);
+
+// Platform.
+const platform = new THREE.Mesh(
+  new THREE.BoxGeometry(PLATFORM.width, PLATFORM.height, PLATFORM.depth),
+  new THREE.MeshStandardMaterial({ color: 0x4a4a62, roughness: 0.9 }),
+);
+platform.position.set(0, -PLATFORM.height / 2, 0);
 scene.add(platform);
 
-const tiles = await loadLevelTextures(emojiUrl(levelById('faces-01').codepoint));
-for (const m of buildVisualWall(tiles)) scene.add(m);
+// 😀 (1f600) wall with four corners knocked out for action.
+const tiles = await loadLevelTextures(emojiUrl('1f600'));
+const knockedOut = [
+  { col: 7, row: 7, dx:  1.6, dy:  0.4, dz: 1.0, rx:  0.4, ry:  0.6, rz:  0.2 },
+  { col: 0, row: 6, dx: -1.4, dy:  1.0, dz: 0.8, rx: -0.3, ry: -0.4, rz:  0.5 },
+  { col: 4, row: 7, dx:  0.4, dy:  1.6, dz: 1.5, rx:  0.7, ry:  0.2, rz: -0.6 },
+  { col: 6, row: 0, dx:  0.8, dy: -0.6, dz: 0.9, rx: -0.2, ry:  0.3, rz: -0.4 },
+];
+for (let row = 0; row < 8; row++) {
+  for (let col = 0; col < 8; col++) {
+    const ko = knockedOut.find(k => k.col === col && k.row === row);
+    const muralRow = 7 - row;
+    const tex = tiles[muralRow][col];
+    const mat = new THREE.MeshStandardMaterial({
+      map: tex, emissiveMap: tex, emissive: 0xffffff, emissiveIntensity: 0.25, roughness: 0.7,
+    });
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), mat);
+    mesh.position.set(col - 3.5, 0.5 + row, 0);
+    if (ko) {
+      mesh.position.x += ko.dx;
+      mesh.position.y += ko.dy;
+      mesh.position.z += ko.dz;
+      mesh.rotation.set(ko.rx, ko.ry, ko.rz);
+    }
+    scene.add(mesh);
+  }
+}
 
-const camera = createCamera(512, 512);
+// Foreground cannonball.
+const ball = new THREE.Mesh(
+  new THREE.SphereGeometry(0.9, 32, 24),
+  new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.4, metalness: 0.1 }),
+);
+ball.position.set(0, 3.5, 6.5);
+scene.add(ball);
+
+// Camera — same as the live mockup (zoomed-out hero shot).
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+camera.position.set(0, 4.0, 16);
+camera.lookAt(0, 3, 0);
+
 renderer.render(scene, camera);
 window.__rendered = true;
 </script></body></html>

@@ -1,3 +1,15 @@
+// Returns the next level id in canonical order, or null when at the end.
+export function nextLevelId(currentId) {
+  const idx = LEVELS.findIndex(l => l.id === currentId);
+  if (idx < 0 || idx + 1 >= LEVELS.length) return null;
+  return LEVELS[idx + 1].id;
+}
+
+// Pick any level id at random.
+export function pickRandomLevelId() {
+  return LEVELS[Math.floor(Math.random() * LEVELS.length)].id;
+}
+
 // Curated worlds for v1. Each level resolves to assets/emoji/{codepoint}.png.
 export const WORLDS = [
   { id: 'faces',    title: 'Faces' },
