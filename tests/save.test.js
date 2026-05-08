@@ -2,16 +2,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { serialize, deserialize, defaultSave, SAVE_VERSION } from '../src/save.js';
 
-test('defaultSave has version, gold=0, starter nbucks, starter inventory, default settings', () => {
+test('defaultSave has version, gold=0, starter nbucks, empty inventory, default settings', () => {
   const s = defaultSave();
   assert.equal(s.version, SAVE_VERSION);
   assert.equal(s.gold, 0);
   assert.equal(s.nbucks, 50);
-  assert.deepEqual(s.inventory, {
-    chair: 5, desk: 5, bomb: 5,
-    tv: 5, couch: 5, fridge: 5,
-    bed: 5, piano: 5, toilet: 5,
-  });
+  assert.deepEqual(s.inventory, {});
   assert.deepEqual(s.settings, { muted: false, haptics: true });
 });
 
@@ -41,27 +37,19 @@ test('deserialize old-version save returns default save (forward-only migration)
   assert.deepEqual(deserialize(blob), defaultSave());
 });
 
-test('deserialize fills in missing inventory keys from defaults', () => {
-  const blob = JSON.stringify({ version: SAVE_VERSION, gold: 50, inventory: {}, settings: {} });
-  const t = deserialize(blob);
-  // Saved inventory was empty, defaults supply the starter pack.
-  for (const k of ['chair', 'desk', 'bomb', 'tv', 'couch', 'fridge', 'bed', 'piano', 'toilet']) {
-    assert.equal(t.inventory[k], 5, `inventory.${k}`);
-  }
-});
-
-test('deserialize keeps explicit zero in inventory (player consumed items)', () => {
+test('deserialize preserves saved inventory counts', () => {
   const blob = JSON.stringify({
     version: SAVE_VERSION, gold: 50,
-    inventory: {
-      chair: 0, desk: 0, bomb: 0,
-      tv: 0, couch: 0, fridge: 0,
-      bed: 0, piano: 0, toilet: 0,
-    },
+    inventory: { chair: 3, bomb: 1 },
     settings: {},
   });
   const t = deserialize(blob);
-  for (const k of ['chair', 'desk', 'bomb', 'tv', 'couch', 'fridge', 'bed', 'piano', 'toilet']) {
-    assert.equal(t.inventory[k], 0, `inventory.${k}`);
-  }
+  assert.equal(t.inventory.chair, 3);
+  assert.equal(t.inventory.bomb, 1);
+});
+
+test('deserialize defaults missing inventory to empty object', () => {
+  const blob = JSON.stringify({ version: SAVE_VERSION, gold: 50, settings: {} });
+  const t = deserialize(blob);
+  assert.deepEqual(t.inventory, {});
 });

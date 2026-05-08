@@ -1,4 +1,4 @@
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 const KEY = 'emoji-smash-3d:save:v1';
 
 export function defaultSave() {
@@ -7,12 +7,8 @@ export function defaultSave() {
     gold: 0,
     // Premium currency — used in the shop to buy star packs.
     nbucks: 50,
-    // Dev starter pack so new throwables can be tried out immediately.
-    inventory: {
-      chair: 5, desk: 5, bomb: 5,
-      tv: 5, couch: 5, fridge: 5,
-      bed: 5, piano: 5, toilet: 5,
-    },
+    // Players start with no consumables; everything must be earned + bought.
+    inventory: {},
     settings: { muted: false, haptics: true },
   };
 }

@@ -17,7 +17,7 @@ export const SHAPES = {
 
   chair: {
     label: 'Chair',
-    cost: 15,
+    cost: 5,
     consumable: true,
     pieceMass: 5,
     behavior: 'shatter',
@@ -33,7 +33,7 @@ export const SHAPES = {
 
   desk: {
     label: 'Desk',
-    cost: 24,
+    cost: 8,
     consumable: true,
     pieceMass: 9,
     behavior: 'shatter',
@@ -51,7 +51,7 @@ export const SHAPES = {
 
   bomb: {
     label: 'Bomb',
-    cost: 36,
+    cost: 12,
     consumable: true,
     behavior: 'explode',
     blastRadius: 4,
@@ -68,7 +68,7 @@ export const SHAPES = {
 
   tv: {
     label: 'TV',
-    cost: 12,
+    cost: 4,
     consumable: true,
     pieceMass: 8,
     behavior: 'shatter',
@@ -82,7 +82,7 @@ export const SHAPES = {
 
   couch: {
     label: 'Couch',
-    cost: 24,
+    cost: 8,
     consumable: true,
     pieceMass: 8,
     behavior: 'shatter',
@@ -97,7 +97,7 @@ export const SHAPES = {
 
   fridge: {
     label: 'Fridge',
-    cost: 30,
+    cost: 10,
     consumable: true,
     pieceMass: 18,
     behavior: 'shatter',
@@ -113,7 +113,7 @@ export const SHAPES = {
 
   bed: {
     label: 'Bed',
-    cost: 27,
+    cost: 9,
     consumable: true,
     pieceMass: 7,
     behavior: 'shatter',
@@ -127,7 +127,7 @@ export const SHAPES = {
 
   piano: {
     label: 'Piano',
-    cost: 39,
+    cost: 13,
     consumable: true,
     pieceMass: 14,
     behavior: 'shatter',
@@ -142,7 +142,7 @@ export const SHAPES = {
 
   toilet: {
     label: 'Toilet',
-    cost: 15,
+    cost: 5,
     consumable: true,
     pieceMass: 7,
     behavior: 'shatter',

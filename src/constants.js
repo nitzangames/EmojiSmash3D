@@ -1,5 +1,5 @@
 // Bump in lockstep with package.json so the in-game badge identifies the build.
-export const VERSION = '0.13.2';
+export const VERSION = '0.14.0';
 
 // World layout (meters)
 export const PLATFORM = { width: 8, height: 0.8, depth: 8, top: 0 };
