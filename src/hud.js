@@ -60,12 +60,33 @@ export function showLevelClear(rootEl, { reward, onDouble, onNext }) {
   adBtn.onclick = async () => {
     adBtn.disabled = true;
     adBtn.textContent = 'Watching ad...';
-    // Stub for the platform SDK's rewarded-video flow — short delay so the
-    // user sees the state change, then double the reward.
-    await new Promise(r => setTimeout(r, 1500));
-    onDouble?.();
-    rewardEl.textContent = `+ ★${reward * 2}`;
-    adBtn.remove();
+
+    // On the platform: PlaySDK.showRewardedAd() handles AdMob on mobile and
+    // resolves with `{ rewarded: true }` for free on web (per platform docs).
+    // Local dev (older bundled SDK) has no such function — fall back to a
+    // short delay + grant so the flow is testable.
+    let rewarded = false;
+    if (typeof window !== 'undefined' && window.PlaySDK?.showRewardedAd) {
+      try {
+        const result = await window.PlaySDK.showRewardedAd();
+        rewarded = !!result?.rewarded;
+      } catch {
+        rewarded = false;
+      }
+    } else {
+      await new Promise(r => setTimeout(r, 500));
+      rewarded = true;
+    }
+
+    if (rewarded) {
+      onDouble?.();
+      rewardEl.textContent = `+ ★${reward * 2}`;
+      adBtn.remove();
+    } else {
+      // User skipped or ad failed — restore the button.
+      adBtn.disabled = false;
+      adBtn.textContent = 'Double ★ — Watch Ad';
+    }
   };
   modal.querySelector('#next').onclick = () => { modal.remove(); onNext?.(); };
 }
