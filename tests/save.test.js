@@ -2,11 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { serialize, deserialize, defaultSave, SAVE_VERSION } from '../src/save.js';
 
-test('defaultSave has version, gold=0, starter nbucks, empty inventory, default settings', () => {
+test('defaultSave has version, gold=0, empty inventory, default settings', () => {
   const s = defaultSave();
   assert.equal(s.version, SAVE_VERSION);
   assert.equal(s.gold, 0);
-  assert.equal(s.nbucks, 50);
   assert.deepEqual(s.inventory, {});
   assert.deepEqual(s.settings, { muted: false, haptics: true });
 });
@@ -14,7 +13,6 @@ test('defaultSave has version, gold=0, starter nbucks, empty inventory, default 
 test('serialize/deserialize round-trip', () => {
   const s = defaultSave();
   s.gold = 240;
-  s.nbucks = 12;
   s.inventory.chair = 4;
   s.settings.muted = true;
   const blob = serialize(s);

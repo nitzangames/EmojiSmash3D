@@ -2,6 +2,30 @@ import { SHAPES, PROJECTILE_KINDS } from './throwables.js';
 import { STAR_PACKS } from './progression.js';
 import { renderShapePreview } from './preview.js';
 
+const CONFETTI_COLORS = ['#f5c518', '#e94560', '#27ae60', '#3498db', '#f39c12', '#ffffff'];
+
+function burstConfetti(originX, originY) {
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-particle';
+    p.style.background = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+    p.style.left = originX + 'px';
+    p.style.top  = originY + 'px';
+    document.body.appendChild(p);
+    const angle    = Math.random() * Math.PI * 2;
+    const distance = 50 + Math.random() * 70;
+    const dx       = Math.cos(angle) * distance;
+    const dy       = Math.sin(angle) * distance - 24;
+    const rot      = (Math.random() - 0.5) * 720;
+    const duration = 650 + Math.random() * 250;
+    const anim = p.animate([
+      { transform: 'translate(-50%, -50%) rotate(0deg)', opacity: 1 },
+      { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) rotate(${rot}deg)`, opacity: 0 },
+    ], { duration, easing: 'cubic-bezier(.2,.7,.4,1)', fill: 'forwards' });
+    anim.onfinish = () => p.remove();
+  }
+}
+
 // Main shop screen: lets the player spend stars on throwables and hit Play.
 // Star pack purchases live on a separate screen, reachable via the
 // "Buy Stars" button next to the title.
@@ -40,30 +64,36 @@ export function showShop(root, save, { onPlay, onBuy, onBuyStarsClick }) {
   root.querySelector('#play').onclick = onPlay;
   root.querySelector('#buy-stars').onclick = onBuyStarsClick;
   root.querySelectorAll('[data-buy]').forEach(btn => {
-    btn.onclick = () => onBuy(btn.dataset.buy);
+    btn.onclick = () => {
+      // Capture icon rect BEFORE onBuy — the success path re-renders the shop
+      // and replaces the icon element.
+      const icon = btn.closest('.shop-item')?.querySelector('.shop-item-icon');
+      const rect = (icon || btn).getBoundingClientRect();
+      burstConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      onBuy(btn.dataset.buy);
+    };
   });
 }
 
 // Dedicated nbucks → stars screen.
+// NBucks are the platform's hard currency: balance and top-up live in the
+// PlayHub shell, so we don't display them here. Tapping a pack hands off to
+// PlaySDK.nbucks.spend(), which prompts the user to confirm and to top up if
+// their balance is low.
 export function showBuyStars(root, save, { onBack, onBuyStars }) {
   root.innerHTML = `
     <div class="screen">
       <div class="shop-balance">★ ${save.gold || 0}</div>
       <h1>Buy Stars</h1>
-      <div class="sub">ⓝ ${save.nbucks || 0}</div>
 
       <div class="shop-grid">
-        ${STAR_PACKS.map(p => {
-          const canAfford = (save.nbucks || 0) >= p.nbucks;
-          const buyClass = `menu-btn shop-buy ${canAfford ? 'affordable' : 'secondary'}`;
-          return `
-            <div class="shop-item">
-              <div class="shop-item-stars">★${p.stars}</div>
-              <button class="${buyClass}" data-pack="${p.id}" ${canAfford ? '' : 'disabled'}>
-                ⓝ ${p.nbucks}
-              </button>
-            </div>`;
-        }).join('')}
+        ${STAR_PACKS.map(p => `
+          <div class="shop-item">
+            <div class="shop-item-stars">★${p.stars}</div>
+            <button class="menu-btn shop-buy affordable" data-pack="${p.id}">
+              <span class="nbuck-coin">N</span>${p.nbucks}
+            </button>
+          </div>`).join('')}
       </div>
 
       <button class="menu-btn secondary" id="back">Back</button>

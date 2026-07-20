@@ -19,7 +19,7 @@ import { OffTracker } from './off-detection.js';
 import { Hud, showLevelClear, showPauseMenu } from './hud.js';
 import { showShop, showBuyStars } from './menu.js';
 
-import { LEVEL_REWARD, addGold, buyItem, buyStars, consumeItem, inventoryCount } from './progression.js';
+import { LEVEL_REWARD, STAR_PACKS, addGold, buyItem, consumeItem, inventoryCount } from './progression.js';
 import { load as loadSave, save as saveState } from './save.js';
 import { initAudio, Sfx, setMuted, isMuted } from './audio.js';
 import { vibrate, setHapticsEnabled, isHapticsEnabled } from './haptics.js';
@@ -171,19 +171,60 @@ function showShopScreen() {
   render();
 }
 
+// Spend the user's platform NBucks via PlaySDK.nbucks.spend() and credit the
+// pack's stars on success. The platform shows balance + top-up UI itself, so
+// we only need to react to resolve / reject. In local dev the bundled SDK
+// lacks this API — fall back to a free grant so the flow stays testable
+// (same pattern as the rewarded-ad fallback in hud.js).
+async function purchaseStarPack(packId) {
+  const pack = STAR_PACKS.find(p => p.id === packId);
+  if (!pack) return false;
+  const sdk = typeof window !== 'undefined' ? window.PlaySDK : null;
+  const fulfill = async (result) => {
+    const receiptId = typeof result?.receiptId === 'string' ? result.receiptId : null;
+    const receipts = Array.isArray(saveData.fulfilledNbucksReceipts)
+      ? saveData.fulfilledNbucksReceipts
+      : [];
+    if (receiptId && receipts.includes(receiptId)) return;
+    const previousSave = saveData;
+    saveData = {
+      ...addGold(saveData, pack.stars),
+      fulfilledNbucksReceipts: receiptId ? [...receipts, receiptId] : receipts,
+    };
+    try {
+      await saveState(saveData);
+    } catch (error) {
+      saveData = previousSave;
+      throw error;
+    }
+  };
+  try {
+    if (sdk?.nbucks?.spend) {
+      await sdk.nbucks.spend({
+        amount: pack.nbucks,
+        itemDescription: `${pack.stars} stars`,
+        itemId: `stars-${pack.id}`,
+        fulfill,
+      });
+    } else {
+      await fulfill({});
+    }
+  } catch {
+    return false;
+  }
+  return true;
+}
+
 function showBuyStarsScreen() {
   hudRoot.innerHTML = '';
   if (session) tearDown();
   const render = () => {
     showBuyStars(screensEl, saveData, {
       onBack: () => showShopScreen(),
-      onBuyStars: (packId) => {
-        const next = buyStars(saveData, packId);
-        if (next) {
-          saveData = next;
-          saveState(saveData);
-          render();
-        }
+      onBuyStars: async (packId) => {
+        const ok = await purchaseStarPack(packId);
+        if (!ok) return;
+        render();
       },
     });
   };

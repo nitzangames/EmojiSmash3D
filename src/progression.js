@@ -13,10 +13,6 @@ export function addGold(save, amount) {
   return { ...save, gold: (save.gold || 0) + amount };
 }
 
-export function addNbucks(save, amount) {
-  return { ...save, nbucks: (save.nbucks || 0) + amount };
-}
-
 // Returns a new save with the item added and gold deducted, or null if the
 // player can't afford it.
 export function buyItem(save, item, cost) {
@@ -26,18 +22,6 @@ export function buyItem(save, item, cost) {
     ...save,
     gold: save.gold - cost,
     inventory: { ...inv, [item]: (inv[item] || 0) + 1 },
-  };
-}
-
-// Spend nbucks to receive a fixed amount of stars. Returns null if insufficient.
-export function buyStars(save, packId) {
-  const pack = STAR_PACKS.find(p => p.id === packId);
-  if (!pack) return null;
-  if ((save.nbucks || 0) < pack.nbucks) return null;
-  return {
-    ...save,
-    nbucks: save.nbucks - pack.nbucks,
-    gold: (save.gold || 0) + pack.stars,
   };
 }
 

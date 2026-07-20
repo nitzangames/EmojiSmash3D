@@ -1,14 +1,13 @@
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 const KEY = 'emoji-smash-3d:save:v1';
 
 export function defaultSave() {
   return {
     version: SAVE_VERSION,
     gold: 0,
-    // Premium currency — used in the shop to buy star packs.
-    nbucks: 50,
     // Players start with no consumables; everything must be earned + bought.
     inventory: {},
+    fulfilledNbucksReceipts: [],
     settings: { muted: false, haptics: true },
   };
 }
@@ -26,8 +25,10 @@ export function deserialize(blob) {
   return {
     version:   SAVE_VERSION,
     gold:      typeof parsed.gold === 'number'   ? parsed.gold   : 0,
-    nbucks:    typeof parsed.nbucks === 'number' ? parsed.nbucks : d.nbucks,
     inventory: { ...d.inventory, ...(parsed.inventory || {}) },
+    fulfilledNbucksReceipts: Array.isArray(parsed.fulfilledNbucksReceipts)
+      ? parsed.fulfilledNbucksReceipts.filter(id => typeof id === 'string')
+      : [],
     settings:  { ...d.settings,  ...(parsed.settings  || {}) },
   };
 }
