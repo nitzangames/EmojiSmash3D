@@ -35,6 +35,22 @@ test('deserialize old-version save returns default save (forward-only migration)
   assert.deepEqual(deserialize(blob), defaultSave());
 });
 
+test('deserialize migrates v7 gold, inventory, and settings into v8', () => {
+  const blob = JSON.stringify({
+    version: 7,
+    gold: 240,
+    inventory: { chair: 4 },
+    settings: { muted: true, haptics: false },
+  });
+  assert.deepEqual(deserialize(blob), {
+    version: SAVE_VERSION,
+    gold: 240,
+    inventory: { chair: 4 },
+    fulfilledNbucksReceipts: [],
+    settings: { muted: true, haptics: false },
+  });
+});
+
 test('deserialize preserves saved inventory counts', () => {
   const blob = JSON.stringify({
     version: SAVE_VERSION, gold: 50,

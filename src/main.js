@@ -20,7 +20,7 @@ import { Hud, showLevelClear, showPauseMenu } from './hud.js';
 import { showShop, showBuyStars } from './menu.js';
 
 import { LEVEL_REWARD, STAR_PACKS, addGold, buyItem, consumeItem, inventoryCount } from './progression.js';
-import { load as loadSave, save as saveState } from './save.js';
+import { load as loadSave, save as saveState, deserialize, serialize, SAVE_KEY } from './save.js';
 import { initAudio, Sfx, setMuted, isMuted } from './audio.js';
 import { vibrate, setHapticsEnabled, isHapticsEnabled } from './haptics.js';
 
@@ -182,6 +182,21 @@ async function purchaseStarPack(packId) {
   const sdk = typeof window !== 'undefined' ? window.PlaySDK : null;
   const fulfill = async (result) => {
     const receiptId = typeof result?.receiptId === 'string' ? result.receiptId : null;
+    if (receiptId && typeof sdk?.updateSave === 'function') {
+      const saved = await sdk.updateSave(SAVE_KEY, (currentBlob) => {
+        const current = currentBlob ? deserialize(currentBlob) : saveData;
+        const currentReceipts = Array.isArray(current.fulfilledNbucksReceipts)
+          ? current.fulfilledNbucksReceipts
+          : [];
+        if (currentReceipts.includes(receiptId)) return serialize(current);
+        return serialize({
+          ...addGold(current, pack.stars),
+          fulfilledNbucksReceipts: [...currentReceipts, receiptId],
+        });
+      });
+      saveData = deserialize(saved);
+      return;
+    }
     const receipts = Array.isArray(saveData.fulfilledNbucksReceipts)
       ? saveData.fulfilledNbucksReceipts
       : [];

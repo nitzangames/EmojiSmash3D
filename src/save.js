@@ -1,5 +1,5 @@
 export const SAVE_VERSION = 8;
-const KEY = 'emoji-smash-3d:save:v1';
+export const SAVE_KEY = 'emoji-smash-3d:save:v1';
 
 export function defaultSave() {
   return {
@@ -20,7 +20,9 @@ export function deserialize(blob) {
   if (!blob) return defaultSave();
   let parsed;
   try { parsed = JSON.parse(blob); } catch { return defaultSave(); }
-  if (!parsed || parsed.version !== SAVE_VERSION) return defaultSave();
+  // v8 only added the paid-fulfillment receipt list. All v7 fields are still
+  // valid and must migrate in place instead of wiping a player's inventory.
+  if (!parsed || (parsed.version !== SAVE_VERSION && parsed.version !== 7)) return defaultSave();
   const d = defaultSave();
   return {
     version:   SAVE_VERSION,
@@ -37,11 +39,11 @@ export async function load() {
   const sdk = (typeof window !== 'undefined' && window.PlaySDK) || null;
   if (sdk && typeof sdk.load === 'function') {
     try {
-      const blob = await sdk.load(KEY);
+      const blob = await sdk.load(SAVE_KEY);
       if (blob) return deserialize(blob);
     } catch { /* fallthrough */ }
   }
-  if (typeof localStorage !== 'undefined') return deserialize(localStorage.getItem(KEY));
+  if (typeof localStorage !== 'undefined') return deserialize(localStorage.getItem(SAVE_KEY));
   return defaultSave();
 }
 
@@ -49,7 +51,7 @@ export async function save(state) {
   const blob = serialize(state);
   const sdk = (typeof window !== 'undefined' && window.PlaySDK) || null;
   if (sdk && typeof sdk.save === 'function') {
-    try { await sdk.save(KEY, blob); } catch { /* fallthrough */ }
+    try { await sdk.save(SAVE_KEY, blob); } catch { /* fallthrough */ }
   }
-  if (typeof localStorage !== 'undefined') localStorage.setItem(KEY, blob);
+  if (typeof localStorage !== 'undefined') localStorage.setItem(SAVE_KEY, blob);
 }
